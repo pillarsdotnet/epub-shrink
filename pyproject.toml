@@ -1,0 +1,21 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "epub-shrink"
+version = "0.1.0"
+description = "Shrink EPUB images for 1-bit e-ink readers such as XTEInk devices running CrossInk"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [
+    { name = "Robert August Vincent II", email = "pillarsdotnet@gmail.com" },
+]
+dependencies = ["Pillow>=10"]
+
+[project.scripts]
+epub-shrink = "epub_shrink:main"
+
+[tool.setuptools]
+py-modules = ["epub_shrink"]
