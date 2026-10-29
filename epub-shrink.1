@@ -1,0 +1,84 @@
+.TH EPUB-SHRINK 1 "October 2026" "epub-shrink 0.1.0" "User Commands"
+.SH NAME
+epub-shrink \- shrink EPUB images for 1-bit e-ink readers
+.SH SYNOPSIS
+.B epub-shrink
+[\fIOPTIONS\fR] \fIINPUT\fR...
+.SH DESCRIPTION
+.B epub-shrink
+rewrites every raster image inside an EPUB as an 8-bit grayscale baseline
+JPEG, downscaled so its longest side fits the panel of XTEInk devices
+running CrossInk firmware (800x480 at 1 bit with dithering), then repacks
+the archive with the
+.I mimetype
+entry first and uncompressed, as the EPUB specification requires.
+When an image changes extension (PNG/GIF to JPEG), the OPF manifest entry
+and every src/href/url() reference in the content documents are rewritten
+to match.
+.PP
+Each
+.I INPUT
+may be an EPUB file or a directory, which is searched recursively for
+.B *.epub
+files.
+By default each input file is
+.B overwritten in place
+(atomically, via a temporary file in the same directory).
+Use
+.B \-\-suffix
+or
+.B \-\-output\-dir
+to keep the originals.
+.SH OPTIONS
+.TP
+.BR \-s ", " \-\-suffix " \fISUFFIX\fR"
+Write each result as \fINAME\fR\fISUFFIX\fR.epub next to the original
+instead of overwriting it. A leading dot is added if missing, so
+.B \-\-suffix .shrunk
+and
+.B \-\-suffix shrunk
+both turn Book.epub into Book.shrunk.epub. When a directory is scanned,
+files already carrying the suffix are skipped.
+.TP
+.BR \-o ", " \-\-output\-dir " \fIDIR\fR"
+Write optimized books into \fIDIR\fR (created if needed) instead of
+overwriting the originals.
+.TP
+.BR \-\-max\-dim " \fIPIXELS\fR"
+Longest image side in pixels. The default of 800 fits the XTEInk 800x480
+panel in either orientation.
+.TP
+.BR \-\-quality " \fIN\fR"
+JPEG quality, 1-95 (default: 60, visually transparent after 1-bit
+dithering).
+.TP
+.BR \-v ", " \-\-verbose
+Report the outcome for every image in each book.
+.SH EXIT STATUS
+0 on success; 1 if no EPUB files were found or any book failed to process.
+.SH EXAMPLES
+Shrink one book in place:
+.PP
+.nf
+.RS
+epub-shrink Book.epub
+.RE
+.fi
+.PP
+Keep the originals, writing Book.shrunk.epub alongside:
+.PP
+.nf
+.RS
+epub-shrink --suffix .shrunk Book.epub
+.RE
+.fi
+.PP
+Optimize a whole library onto a device:
+.PP
+.nf
+.RS
+epub-shrink -o /media/you/XTEINK/books/ ~/calibre-library/
+.RE
+.fi
+.SH AUTHOR
+Robert August Vincent II <pillarsdotnet@gmail.com>

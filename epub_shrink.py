@@ -242,19 +242,22 @@ def shrink_epub(
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
-        description="Shrink EPUB images for 1-bit e-ink readers (CrossInk/XTEInk)."
+        description="Shrink EPUB images for 1-bit e-ink readers (CrossInk/XTEInk). "
+        "By default each input file is overwritten in place (atomically, via a "
+        "temporary file); use --suffix or --output-dir to keep the originals."
     )
     parser.add_argument("inputs", nargs="+", type=Path, help="EPUB files or directories of them")
+    parser.add_argument(
+        "-s",
+        "--suffix",
+        help="write each result as NAMESUFFIX.epub next to the original instead of "
+        "overwriting it (e.g. --suffix .shrunk gives Book.shrunk.epub)",
+    )
     parser.add_argument(
         "-o",
         "--output-dir",
         type=Path,
-        help="write optimized books here (default: next to the input as NAME.shrunk.epub)",
-    )
-    parser.add_argument(
-        "--in-place",
-        action="store_true",
-        help="overwrite the input files (a .bak copy is NOT kept)",
+        help="write optimized books into this directory instead of overwriting",
     )
     parser.add_argument(
         "--max-dim",
@@ -268,10 +271,18 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("-v", "--verbose", action="store_true", help="report per-image results")
     args = parser.parse_args(argv)
 
+    suffix = args.suffix
+    if suffix and not suffix.startswith("."):
+        suffix = "." + suffix
+
     epubs: list[Path] = []
     for item in args.inputs:
         if item.is_dir():
-            epubs.extend(sorted(item.rglob("*.epub")))
+            found = sorted(item.rglob("*.epub"))
+            if suffix:
+                # Do not re-shrink our own earlier output when rescanning a tree.
+                found = [p for p in found if not p.name.endswith(suffix + ".epub")]
+            epubs.extend(found)
         elif item.suffix.lower() == ".epub":
             epubs.append(item)
         else:
@@ -283,13 +294,12 @@ def main(argv: list[str] | None = None) -> int:
     total_in = total_out = 0
     failures = 0
     for epub in epubs:
-        if args.in_place:
-            out = epub
-        elif args.output_dir:
+        out_name = epub.stem + suffix + ".epub" if suffix else epub.name
+        if args.output_dir:
             args.output_dir.mkdir(parents=True, exist_ok=True)
-            out = args.output_dir / epub.name
+            out = args.output_dir / out_name
         else:
-            out = epub.with_suffix(".shrunk.epub")
+            out = epub.with_name(out_name)
         tmp = out.with_suffix(out.suffix + ".tmp")
         print(f"{epub}:")
         try:

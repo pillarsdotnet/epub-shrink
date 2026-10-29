@@ -1,0 +1,28 @@
+Source: epub-shrink
+Section: text
+Priority: optional
+Maintainer: Robert August Vincent II <pillarsdotnet@gmail.com>
+Build-Depends: debhelper-compat (= 13),
+               dh-python,
+               pybuild-plugin-pyproject,
+               python3-all,
+               python3-setuptools,
+Standards-Version: 4.6.2
+Rules-Requires-Root: no
+Homepage: https://github.com/pillarsdotnet/epub-shrink
+
+Package: epub-shrink
+Architecture: all
+Depends: ${python3:Depends},
+         ${misc:Depends},
+         python3-pil,
+Description: shrink EPUB images for 1-bit e-ink readers
+ Rewrites every raster image inside an EPUB as an 8-bit grayscale
+ baseline JPEG, downscaled to fit the panel of XTEInk devices running
+ CrossInk firmware (800x480, 1-bit with dithering), then repacks the
+ archive correctly with the mimetype entry first and uncompressed.
+ .
+ When an image changes extension (PNG/GIF to JPEG), the OPF manifest
+ entry and every src/href/url() reference in the content documents are
+ rewritten to match. Works on single files, multiple files, or whole
+ directory trees; by default it overwrites the originals in place.

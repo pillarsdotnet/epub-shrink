@@ -4,3 +4,12 @@ __pycache__/
 dist/
 build/
 .venv/
+
+# dpkg-buildpackage artifacts
+debian/.debhelper/
+debian/epub-shrink/
+debian/epub-shrink.*.debhelper
+debian/epub-shrink.substvars
+debian/debhelper-build-stamp
+debian/files
+.pybuild/
