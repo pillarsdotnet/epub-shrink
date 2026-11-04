@@ -1,0 +1,4 @@
+downscale[sd]?
+grayscale
+microcontroller
+rasteriz(e[sd]?|ing)

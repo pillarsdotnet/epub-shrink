@@ -1,14 +1,14 @@
 # epub-shrink
 
 Shrink the images inside EPUB files for 1-bit e-ink readers, specifically
-XTEInk devices running [CrossInk](https://github.com/uxjulia/CrossInk)
+`XTEInk` devices running [CrossInk](https://github.com/uxjulia/CrossInk)
 firmware.
 
 ## Why
 
 The CrossInk EPUB engine picks an image decoder by file extension and
 supports baseline JPEG (`JPEGDEC`), PNG (`PNGdec`), and GIF. Progressive
-JPEGs — which many publishers ship — fail to decode. The display is 800x480
+JPEG files — which many publishers ship — fail to decode. The display is 800x480
 at 1 bit with dithering, so color depth and resolution beyond the panel are
 wasted flash, SD bandwidth, and decode RAM on a microcontroller with
 ~380 KB of usable memory.
@@ -75,7 +75,7 @@ When scanning a directory with `--suffix`, files that already carry the
 suffix are skipped, so re-running over the same tree never produces
 `Book.shrunk.shrunk.epub`.
 
-The default `--max-dim 800` fits the XTEInk 800x480 panel in either
+The default `--max-dim 800` fits the `XTEInk` 800x480 panel in either
 orientation; `--quality 60` is visually transparent after 1-bit dithering.
 
 ## License

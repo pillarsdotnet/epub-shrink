@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+# Copyright (c) 2026 Robert August Vincent II <pillarsdotnet@gmail.com>
+# Co-author: Claude Code.
 """Shrink EPUB images for 1-bit e-ink readers such as XTEInk devices running CrossInk.
 
 The CrossInk EPUB engine decodes images by file extension: baseline JPEG
@@ -69,7 +71,7 @@ def _flatten_to_grayscale(img: Image.Image) -> Image.Image:
 
 
 def _shrink_image(
-    data: bytes, max_dim: int, quality: int
+    data: bytes, max_dim: int, quality: int,
 ) -> tuple[bytes | None, bool, str]:
     """Re-encode one image as grayscale baseline JPEG.
 
@@ -93,7 +95,9 @@ def _shrink_image(
             buf = io.BytesIO()
             out.save(buf, format="JPEG", quality=quality, optimize=True, progressive=False)
             return buf.getvalue(), must_convert, reason
-    except Exception as exc:  # Pillow raises many types; a bad image must not kill the run.
+    # Pillow raises many exception types for a malformed image, and one bad
+    # image must not kill a run over a whole book.
+    except Exception as exc:  # noqa: BLE001 - deliberate catch-all, reported per image
         return None, False, str(exc)
 
 
@@ -133,7 +137,7 @@ def _rewrite_references(doc_name: str, text: str, renames: dict[str, str]) -> st
 
     text = re.sub(
         r"((?:src|href|xlink:href)\s*=\s*)([\"'])([^\"']+)\2",
-        lambda m: attr_sub(m),
+        attr_sub,
         text,
     )
 
@@ -147,7 +151,7 @@ def _rewrite_references(doc_name: str, text: str, renames: dict[str, str]) -> st
     return re.sub(r"url\(\s*([\"']?)([^\"')]+)\1\s*\)", url_sub, text)
 
 
-def _rewrite_opf_media_types(text: str, renames: dict[str, str]) -> str:
+def _rewrite_opf_media_types(text: str) -> str:
     """Set media-type="image/jpeg" on manifest items whose href was renamed.
 
     Hrefs themselves are rewritten by `_rewrite_references`; this pass only
@@ -168,8 +172,8 @@ def _rewrite_opf_media_types(text: str, renames: dict[str, str]) -> str:
     return re.sub(r"<item\b[^>]*/?>", item_sub, text)
 
 
-def shrink_epub(
-    in_path: Path, out_path: Path, max_dim: int, quality: int, verbose: bool
+def shrink_epub(  # noqa: C901, PLR0912, PLR0915 - one branch per part of the EPUB
+    in_path: Path, out_path: Path, max_dim: int, quality: int, *, verbose: bool,
 ) -> tuple[int, int]:
     """Optimize one EPUB. Returns (input_size, output_size) in bytes."""
     results: list[ImageResult] = []
@@ -185,7 +189,7 @@ def shrink_epub(
             data = zin.read(name)
             shrunk, must_convert, reason = _shrink_image(data, max_dim, quality)
             if shrunk is None:
-                print(f"  warn: could not decode {name}: {reason}", file=sys.stderr)
+                print(f"  warn: could not decode {name}: {reason}", file=sys.stderr)  # noqa: T201 - diagnostic
                 continue
             if len(shrunk) >= len(data) and not must_convert:
                 results.append(ImageResult(name, name, len(data), len(data), "kept"))
@@ -195,7 +199,7 @@ def shrink_epub(
             else:
                 picked = _unique_jpeg_name(name, taken)
                 if picked is None:
-                    print(f"  warn: name collision, keeping {name} as-is", file=sys.stderr)
+                    print(f"  warn: name collision, keeping {name} as-is", file=sys.stderr)  # noqa: T201 - diagnostic
                     continue
                 new_name = picked
                 taken.add(new_name.lower())
@@ -220,7 +224,7 @@ def shrink_epub(
                         text = data.decode("utf-8")
                         text = _rewrite_references(name, text, renames)
                         if name.endswith(".opf"):
-                            text = _rewrite_opf_media_types(text, renames)
+                            text = _rewrite_opf_media_types(text)
                         data = text.encode("utf-8")
                     except UnicodeDecodeError:
                         pass
@@ -229,22 +233,23 @@ def shrink_epub(
     if verbose:
         for r in results:
             if r.action == "kept":
-                print(f"  kept        {r.old_name} ({r.old_size} B, already optimal)")
+                print(f"  kept        {r.old_name} ({r.old_size} B, already optimal)")  # noqa: T201 - output
             else:
                 arrow = f" -> {r.new_name}" if r.new_name != r.old_name else ""
-                print(
+                print(  # noqa: T201 - output
                     f"  {r.action:<11} {r.old_name}{arrow}"
-                    f" ({r.old_size} -> {r.new_size} B)"
+                    f" ({r.old_size} -> {r.new_size} B)",
                 )
 
     return in_path.stat().st_size, out_path.stat().st_size
 
 
-def main(argv: list[str] | None = None) -> int:
+def main(argv: list[str] | None = None) -> int:  # noqa: C901 - argument handling, read as a unit
+    """Shrink every EPUB named on the command line. Returns the exit status."""
     parser = argparse.ArgumentParser(
         description="Shrink EPUB images for 1-bit e-ink readers (CrossInk/XTEInk). "
         "By default each input file is overwritten in place (atomically, via a "
-        "temporary file); use --suffix or --output-dir to keep the originals."
+        "temporary file); use --suffix or --output-dir to keep the originals.",
     )
     parser.add_argument("inputs", nargs="+", type=Path, help="EPUB files or directories of them")
     parser.add_argument(
@@ -266,7 +271,7 @@ def main(argv: list[str] | None = None) -> int:
         help="longest image side in pixels; the XTEInk panel is 800x480 (default: 800)",
     )
     parser.add_argument(
-        "--quality", type=int, default=60, help="JPEG quality 1-95 (default: 60)"
+        "--quality", type=int, default=60, help="JPEG quality 1-95 (default: 60)",
     )
     parser.add_argument("-v", "--verbose", action="store_true", help="report per-image results")
     args = parser.parse_args(argv)
@@ -286,9 +291,9 @@ def main(argv: list[str] | None = None) -> int:
         elif item.suffix.lower() == ".epub":
             epubs.append(item)
         else:
-            print(f"skipping non-EPUB input: {item}", file=sys.stderr)
+            print(f"skipping non-EPUB input: {item}", file=sys.stderr)  # noqa: T201 - diagnostic
     if not epubs:
-        print("no EPUB files found", file=sys.stderr)
+        print("no EPUB files found", file=sys.stderr)  # noqa: T201 - diagnostic
         return 1
 
     total_in = total_out = 0
@@ -301,11 +306,13 @@ def main(argv: list[str] | None = None) -> int:
         else:
             out = epub.with_name(out_name)
         tmp = out.with_suffix(out.suffix + ".tmp")
-        print(f"{epub}:")
+        print(f"{epub}:")  # noqa: T201 - output
         try:
-            size_in, size_out = shrink_epub(epub, tmp, args.max_dim, args.quality, args.verbose)
+            size_in, size_out = shrink_epub(
+                epub, tmp, args.max_dim, args.quality, verbose=args.verbose,
+            )
         except (zipfile.BadZipFile, OSError) as exc:
-            print(f"  error: {exc}", file=sys.stderr)
+            print(f"  error: {exc}", file=sys.stderr)  # noqa: T201 - diagnostic
             tmp.unlink(missing_ok=True)
             failures += 1
             continue
@@ -313,11 +320,13 @@ def main(argv: list[str] | None = None) -> int:
         total_in += size_in
         total_out += size_out
         saved = 100.0 * (1 - size_out / size_in) if size_in else 0.0
-        print(f"  {size_in:,} -> {size_out:,} bytes ({saved:.1f}% smaller) -> {out}")
+        print(  # noqa: T201 - output
+            f"  {size_in:,} -> {size_out:,} bytes ({saved:.1f}% smaller) -> {out}",
+        )
 
     if len(epubs) > 1 and total_in:
         saved = 100.0 * (1 - total_out / total_in)
-        print(f"total: {total_in:,} -> {total_out:,} bytes ({saved:.1f}% smaller)")
+        print(f"total: {total_in:,} -> {total_out:,} bytes ({saved:.1f}% smaller)")  # noqa: T201 - output
     return 1 if failures else 0
 
 
