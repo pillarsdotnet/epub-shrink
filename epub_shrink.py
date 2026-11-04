@@ -89,7 +89,7 @@ def _shrink_image(
             reason = "progressive JPEG" if fmt == "JPEG" and must_convert else fmt.lower()
             out = _flatten_to_grayscale(img)
             if max(out.size) > max_dim:
-                out.thumbnail((max_dim, max_dim), Image.LANCZOS)
+                out.thumbnail((max_dim, max_dim), Image.Resampling.LANCZOS)
             buf = io.BytesIO()
             out.save(buf, format="JPEG", quality=quality, optimize=True, progressive=False)
             return buf.getvalue(), must_convert, reason
