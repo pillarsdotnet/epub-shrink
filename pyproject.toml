@@ -8,6 +8,14 @@ version = "0.1.0"
 description = "Shrink EPUB images for 1-bit e-ink readers such as XTEInk devices running CrossInk"
 readme = "README.md"
 requires-python = ">=3.10"
+# Kept as a TOML table, which setuptools deprecates, because noble must
+# build this. PEP 639's SPDX string needs setuptools >= 77.0.0; noble ships
+# 68.1.2, which rejects a bare string outright -- "must be valid exactly by
+# one definition (2 matches found)", since it matches neither the file nor
+# the text form. Measured in an ubuntu:24.04 container on 2026-11-20. Swap
+# this for `license = "MIT"` and drop this comment once noble stops being a
+# target. This package has no Registry workflow, so its deb is built by
+# hand; the sibling packages that do build on noble keep the same form.
 license = { text = "MIT" }
 authors = [
     { name = "Robert August Vincent II", email = "pillarsdotnet@gmail.com" },
